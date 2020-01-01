@@ -1,0 +1,191 @@
+{
+    "cedsi": {
+        "AUTH_USER": {
+            "CREATE_TIME": "string",
+            "LOGIN_RECORD": "object",
+            "PASSWORD": "string",
+            "ROLE_ID": "string",
+            "SALT": "string",
+            "USER_ID": "string",
+            "USER_INFO": {
+                "AVATAR": "string",
+                "EMAIL": "string",
+                "GENDER": "string",
+                "NICK_NAME": "string",
+                "PHONE": "string",
+                "UPDATE_TIME": "string"
+            },
+            "USER_NAME": "string",
+            "USER_ORDER": [
+                {
+                    "COMMIT_TIME": "string",
+                    "FEE": "int",
+                    "OPEN_ID": "string",
+                    "PAY_STATUS": "string",
+                    "ORDER_ID": "string",
+                    "PRODUCT_NAME": "string"
+                }
+            ],
+            "USER_STATUS": "string"
+        },
+        "CEDSI_ORG": {
+            "ACTIVITIES": [
+                {
+                    "ACTIVITY_CONTENT_IMG": "string",
+                    "ACTIVITY_COVER": "string",
+                    "ACTIVITY_ID": "string",
+                    "ACTIVITY_PLACE": "string",
+                    "ACTIVITY_PRICE": "int",
+                    "ACTIVITY_TIME": "string",
+                    "ACTIVITY_TITLE": "string",
+                    "PRINCIPAL_ID": "string",
+                    "FORM_DETAIL": "object",
+                    "VIDEOS": []
+                }
+            ],
+            "AUTHORIZATION_COURSES": [
+                {
+                    "COURSE_ID": "string",
+                    "COURSE_NAME": "string"
+                },
+                {
+                    "COURSE_ID": "string",
+                    "COURSE_NAME": "string"
+                }
+            ],
+            "BUSINESS_LICENSE": "string",
+            "HEADMASTER": "string",
+            "INTRODUCTION": "string",
+            "ORG_CLASSES": [
+                {
+                    "CLASS_ID": "string",
+                    "CLASS_MEMBER_COUNT": "int",
+                    "CLASS_NAME": "string",
+                    "COURSE_ID": "string",
+                    "COURSE_NAME": "string",
+                    "CREATE_TIME": "string",
+                    "HISTORY_COURSE": [
+                        {
+                            "ID": "string",
+                            "MEMBER_COUNT": "int",
+                            "NAME": "string",
+                            "TEACHER": "string"
+                        }
+                    ],
+                    "TEACHER_ID": "string"
+                }
+            ],
+            "ORG_CODE": "string",
+            "ORG_ID": "string",
+            "ORG_LOCATION": "string",
+            "ORG_NAME": "string",
+            "ORG_NUMBER": "string",
+            "ORG_TYPE": "string",
+            "TEACHERS": [
+                {
+                    "GENDER": "string",
+                    "HOMEWORKS": [
+                        {
+                            "ATTACHED_FILE": "string",
+                            "CLASS_ID": "string",
+                            "CONTENT": "string",
+                            "COURSE_ID": "string",
+                            "CP_ID": "string",
+                            "DEADLINE": "string",
+                            "HOMEWORK_ID": "string",
+                            "HW_NAME": "string"
+                        }
+                    ],
+                    "INTRO": "string",
+                    "JOB_NUMBER": "string",
+                    "RANK": "string",
+                    "TEACHER_ID": "string",
+                    "TEACHER_NAME": "string",
+                    "TEACHER_STATUS": "string"
+                }
+            ]
+        },
+        "CEDSI_STUDENT": {
+            "ACTIVITIES": [
+                {
+                    "ACTIVITY_ID": "string",
+                    "JOIN_TIME": "string"
+                }
+            ],
+            "CLASSES": [
+                "string"
+            ],
+            "COURSE_INFO": [
+                {
+                    "COURSE_ID": "string",
+                    "CREATE_TIME": "string",
+                    "FINISH_CHAPTER": []
+                }
+            ],
+            "ORG_ID": "string",
+            "STUDENT_INFO": {
+                "AGE": "string",
+                "AVATAR": "string",
+                "GENDER": "string",
+                "GRADE": "string",
+                "MOBILE_PHONE": "string",
+                "STUDENT_ID": "string",
+                "STUDENT_NAME": "string"
+            },
+            "USER_ID": "string"
+        },
+        "CEDSI_TEACHER": {
+            "GENDER": "string",
+            "HOMEWORKS": [
+                {
+                    "ATTACHED_FILE": "string",
+                    "CLASS_ID": "string",
+                    "CONTENT": "string",
+                    "COURSE_ID": "string",
+                    "CP_ID": "string",
+                    "DEADLINE": "string",
+                    "HOMEWORK_ID": "string",
+                    "HW_NAME": "string"
+                }
+            ],
+            "INTRO": "string",
+            "JOB_NUMBER": "string",
+            "ORG_CODE": "string",
+            "RANK": "string",
+            "TEACHER_ID": "string",
+            "TEACHER_NAME": "string",
+            "TEACHER_STATUS": "string"
+        },
+        "CEDSI_CURRICULUMS":{
+            "CHAPTERS": [
+              {
+                "CP_DESCRIPTION": "string",
+                "CP_ID": "string",
+                "CP_NAME": "string",
+                "CP_NUMBER": "string",
+                "CP_FOUNDER": "string",
+                "CP_RESOURCE": [
+                  {
+                    "RS_COMMENT": "string",
+                    "RS_CREATE_TIME": "string",
+                    "RS_ID": "string",
+                    "RS_NAME": "string",
+                    "RS_SIZE": "string",
+                    "RS_TYPE": "string",
+                    "RS_URL": "string"
+                  }
+                ],
+                "CP_UPLOAD_TIME": "string"
+              }
+            ],
+            "COURSE_NAME": "string",
+            "COURSE_STATUS": "string",
+            "COVER": "string",
+            "CREATE_TIME": "string",
+            "FOUNDER": "string",
+            "ID": "string",
+            "INTRO": "string",
+            "PRICE": "string"
+          }
+    }
+}
