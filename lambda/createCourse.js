@@ -54,7 +54,7 @@ exports.handler = (event, context, callback) => {
 
     docClient.put(params, function (err, data) {
         if (err) {
-            console.log(JSON.stringify(err));
+            console.error(JSON.stringify(err));
         } else {
             getToken().then(data => {
                 data.Credentials.id = course_id;

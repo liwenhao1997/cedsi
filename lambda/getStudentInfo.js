@@ -8,14 +8,12 @@ var docClient = new AWS.DynamoDB.DocumentClient();
 exports.handler = (event, context, callback) => {
     console.log(JSON.stringify(event));
     var id = event.principalId;
-    // var id = "43d4b60bc84cafdac72db222548f4200509e3a3ef855a1f30789795e56655fc8";
     var params = {
-        TableName : "USER_INFO",
-        KeyConditionExpression: "USER_ID = :id",
-        ExpressionAttributeValues: {
-            ":id": id
+        TableName : "AUTH_USER",
+        Key: {
+            USER_ID: id
         },
-        ProjectionExpression: "AVATAR,NICK_NAME,CREATED_TIME,GENDER,EMAIL,PHONE"
+        ProjectionExpression: "USER_INFO"
          
     };
 
@@ -25,8 +23,7 @@ exports.handler = (event, context, callback) => {
             console.error("Unable to query. Error:", JSON.stringify(err, null, 2));
             callback(err,null);
         }else{
-            console.log(data.Items[0]);
-            callback(null, data.Items[0]);
+            callback(null, data.Item.USER_INFO);
         }
     });
 };

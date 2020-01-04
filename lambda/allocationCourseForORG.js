@@ -23,9 +23,12 @@ exports.handler = (event, context, callback) => {
 
     docClient.update(params, function (err, data) {
         if (err) {
-            console.log(JSON.stringify(err));
+            console.error(JSON.stringify(err));
+            callback(err, null);
         } else {
-            console.log(data);
+            callback(null, {
+                status: "ok"
+            });
         }
     });
 };

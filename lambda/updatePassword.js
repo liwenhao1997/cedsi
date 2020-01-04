@@ -16,7 +16,6 @@ exports.handler = (event, context, callback) => {
   console.log(JSON.stringify(event));
   let id = event.principalId;
   var password = event.password;
-  console.log(password)
   let oldpwd = event.old;
 
   var params = {
@@ -33,10 +32,8 @@ exports.handler = (event, context, callback) => {
       var newPwd = oldpwd + data.Item.SALT;
       newPwd = crypto.createHash('SHA256').update(newPwd).digest('hex');
       if (newPwd == data.Item.PASSWORD) {
-        console.log("验证成功");
         let salt = randomStr(32);
         var newp = password + salt;
-        console.log(newp);
         password = await crypto.createHash('SHA256').update(newp).digest('hex');
 
         let params = {

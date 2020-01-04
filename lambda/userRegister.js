@@ -4,14 +4,15 @@ let crypto = require('crypto'); //加载crypto库
 AWS.config.update({ region: 'cn-northwest-1' });
 let docClient = new AWS.DynamoDB.DocumentClient;
 
-function getAccountCode(id) {
+function getAccountCode(code) {
   let params = {
     TableName: 'CEDSI_ORG',
-    Key: { ORG_ID: id }
+    FilterExpression: "ORG_CODE = : code",
+    ProjectionExpression: "ORG_ID"
   };
   return new Promise((resolve, reject) => {
-    docClient.get(params, function (err, data) {
-      err ? reject(err) : resolve(data.Item);
+    docClient.scan(params, function (err, data) {
+      err ? reject(err) : resolve(data.Items[0]);
     });
   });
 }
@@ -38,24 +39,6 @@ function isUserNameDuplicate(userName) {
   });
 }
 
-function createUserInfo(id, role_id) {
-  let params = {
-    Item: {
-      "AVATAR": "https://cedsi.s3.cn-northwest-1.amazonaws.com.cn/default_avatar.png",
-      "CREATE_TIME": Date.now(),
-      "NICK_NAME": randomStr(8),
-      "ROLE_ID": role_id,
-      "USER_ID": id
-    },
-    TableName: "USER_INFO"
-  };
-  return new Promise((resolve, reject) => {
-    docClient.put(params, function (err, data) {
-      err ? reject(err) : resolve(data.Item);
-    });
-  });
-}
-
 function register(username, password, role, ROLE_ID, ACCOUNT_ID) {
   let sha256 = crypto.createHash('sha256'); //定义加密方式:md5不可逆,此处的sha256可以换成任意hash加密的方法名称；
   sha256.update(username);
@@ -70,18 +53,19 @@ function register(username, password, role, ROLE_ID, ACCOUNT_ID) {
     "CREATE_TIME": String(Date.now()),
     "ROLE_ID": ROLE_ID,
     "SALT": salt,
-    "USER_STATUS": "active"
-    // "USER_INFO": {
-    //   "AVATAR": "https://cedsi.s3.cn-northwest-1.amazonaws.com.cn/default_avatar.png",
-    //   "EMAIL": "example@qq.com",
-    //   "GENDER": "1",
-    //   "NICK_NAME": randomStr(8),
-    //   "PHONE": "12345678900",
-    //   "UPDATE_TIME": String(Date.now())
-     
-    // }
+    "USER_STATUS": "active",
+    "USER_INFO": {
+      "AVATAR": "https://cedsi.s3.cn-northwest-1.amazonaws.com.cn/default_avatar.png",
+      "EMAIL": "example@qq.com",
+      "GENDER": "1",
+      "NICK_NAME": randomStr(8),
+      "PHONE": "12345678900",
+      "UPDATE_TIME": String(Date.now())
+    }
   };
-  if (role) { item.ACCOUNT_ID = ACCOUNT_ID }
+  if (role) {
+    item.ACCOUNT_ID = ACCOUNT_ID
+  }
 
   let params = {
     TableName: "AUTH_USER",
@@ -90,13 +74,8 @@ function register(username, password, role, ROLE_ID, ACCOUNT_ID) {
   return new Promise((resolve, reject) => {
     docClient.put(params, function (err, data) {
       if (err) {
-        console.log(err, err.stack);
         console.error(params);
         reject(err);
-      } else {
-        createUserInfo(userID, ROLE_ID).then(data => {
-          resolve(data);
-        });
       }
     });
   });
@@ -115,10 +94,11 @@ exports.handler = async (event, context, callback) => {
   if (role) {
     let code = await getAccountCode(role);
     if (code) {
-      ACCOUNT_ID = code.ORG_CODE;
+      ACCOUNT_ID = code.ORG_ID;
     } else {
       response.err = "无效的企业ID";
-      return response;
+      callback(response, null);
+      return
     }
   }
 

@@ -16,13 +16,13 @@ function getORGCode(principalId) {
   });
 }
 
-function getProperTeachers(ORG_CODE) {
+function getProperTeachers(org_id) {
   let params = {
     TableName: "CEDSI_TEACHER",
     IndexName: "ORG_CODE",
-    KeyConditionExpression: "ORG_CODE = :C",
+    KeyConditionExpression: "ORG_CODE = :id",
     ExpressionAttributeValues: {
-      ':C': ORG_CODE
+      ':id': org_id
     },
     ProjectionExpression: "TEACHER_ID, TEACHER_NAME",
   };
@@ -46,16 +46,13 @@ exports.handler = (event, context, callback) => {
 
   getORGCode(event.principalId)
     .then(res => {
-      console.log(res.Item.ACCOUNT_ID);
       return getProperTeachers(res.Item.ACCOUNT_ID);
     })
     .then(res => {
-      console.log(res.Items);
       callback(null, res.Items);
     })
     .catch(err => {
-      console.log("ERROR!");
-      console.log(JSON.stringify(err));
+      console.error(JSON.stringify(err));
       callback(err, null);
     });
 };

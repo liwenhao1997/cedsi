@@ -9,22 +9,19 @@ var docClient = new AWS.DynamoDB.DocumentClient();
 
 function getTeacherMsg(id) {
     var params = {
-        TableName: "USER_INFO",
-        KeyConditionExpression: "USER_ID = :id",
-        ExpressionAttributeValues: {
-            ":id": id
+        TableName: "AUTH_USER",
+        Key: {
+            USER_ID: id
         },
-        ProjectionExpression: "NICK_NAME,AVATAR"
+        ProjectionExpression: "USER_INFO.NICK_NAME,USER_INFO.AVATAR"
     };
     return new Promise((resolve,reject) => {
-        docClient.query(params,function(err,data){
+        docClient.get(params,function(err,data){
         if(err){
-            console.log("table info:",params);
             console.error("Unable to query. Error:", JSON.stringify(err, null, 2));
             reject(err);
         }else{
-            console.log(data.Items);
-            resolve(data.Items);
+            resolve(data.Item.USER_INFO);
         }
     });
     });
@@ -32,7 +29,6 @@ function getTeacherMsg(id) {
 
 exports.handler = (event, context, callback) => {
     var id = event.principalId;
-    // 创作空间
     var params = {
         TableName: "CEDSI_STUDENT_QUESTION",
         IndexName: "STUDENT_ID",

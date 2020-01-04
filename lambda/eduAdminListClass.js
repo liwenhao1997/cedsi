@@ -26,9 +26,8 @@ exports.handler = (event, context, callback) => {
                         callback(null, response);
                     }
                 }else {
-                    console.log(element);
-                    getUserNameById().then(data => {
-                        element.TEACHER_NAME = data.NICK_NAME;
+                    getUserNameById(id).then(data => {
+                        element.TEACHER_NAME = data.USER_INFO.NICK_NAME;
                         response.push(element);
                         if(response.length == item.length) {
                             response = response.sort(keysort("CREATE_TIME",false));
@@ -65,21 +64,20 @@ function keysort(key,sortType){
 }
 function getClass(id) {
     var params = {
-        TableName: 'CEDSI_CLASS',
-        IndexName: 'ORG_CODE',
-        KeyConditionExpression: 'ORG_CODE = :id',
-        ExpressionAttributeValues: {
-            ':id': id
+        TableName: 'CEDSI_ORG',
+        Key: {
+            ORG_ID: id
         },
-        ProjectionExpression: "CLASS_ID,CLASS_NAME,CLASS_MEMBER_COUNT,COURSE_ID,COURSE_NAME,TEACHER_ID,CREATE_TIME"
+        ProjectionExpression: "ORG_CLASSES"
+        //CLASS_ID,CLASS_NAME,CLASS_MEMBER_COUNT,COURSE_ID,COURSE_NAME,TEACHER_ID,CREATE_TIME
     };
 
     return new Promise((resolve, reject) => {
-        docClient.query(params, function (err, data) {
+        docClient.get(params, function (err, data) {
             if (err) {
                 reject(JSON.stringify(err));
             } else {
-                resolve(data.Items);
+                resolve(data.Item);
             }
         });
     });
@@ -87,11 +85,11 @@ function getClass(id) {
 
 function getUserNameById(id) {
     var params = {
-        TableName: 'USER_INFO',
+        TableName: 'AUTH_USER',
         Key: {
             USER_ID: id
         },
-        ProjectionExpression: "NICK_NAME"
+        ProjectionExpression: "USER_INFO.NICK_NAME"
     };
     return new Promise((resolve, reject) => {
         docClient.get(params, function (err, data) {

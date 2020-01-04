@@ -8,7 +8,7 @@ AWS.config = new AWS.Config({
 var docClient = new AWS.DynamoDB.DocumentClient;
 var sts = new AWS.STS();
 
-function createId() {
+function createCode() {
     var str = uuid.v4().replace(/-/g, "");
     var length = str.length;
     var newStr = "";
@@ -83,15 +83,11 @@ exports.handler = (event, context, callback) => {
     var type = event.org_type;
     var code = event.code;
     addNumber().then(number => {
-        var buf1 = Buffer.alloc(30, 16);
-        buf1.write(org_name + code + Date.now());
-        code = buf1.toString("base64");
-        //var short_name = event.short_name;
+        code = createCode();
         var license_type = event.type;
-        var url = createId();
-        var license = "https://cedsi.s3.cn-northwest-1.amazonaws.com.cn/license/" + url + "." + license_type;
+        var license = "https://cedsi.s3.cn-northwest-1.amazonaws.com.cn/license/" + code + "." + license_type;
 
-        var id = createId();
+        var id = uuid.v4();
         
         var params = {
             TableName: 'CEDSI_ORG',
@@ -103,7 +99,6 @@ exports.handler = (event, context, callback) => {
                 "ORG_LOCATION": org_addr,
                 "ORG_NAME": org_name,
                 "ORG_TYPE": type,
-                //"SHORT_NAME": short_name,
                 "BUSINESS_LICENSE": license,
                 "ORG_NUMBER": number
             }
@@ -117,7 +112,7 @@ exports.handler = (event, context, callback) => {
                 })
             } else {
                 getToken().then(res => {
-                    res.Credentials.id = url;
+                    res.Credentials.id = code;
                     callback(null, res.Credentials);
                 });
             }

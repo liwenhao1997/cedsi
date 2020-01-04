@@ -8,19 +8,24 @@ var docClient = new AWS.DynamoDB.DocumentClient;
 
 function getActivityDetail(activity_id) {
     var params = {
-        TableName: 'CEDSI_ACTIVITY',
-        Key: {
-            ID: activity_id
+        TableName: 'CEDSI_ORG',
+        FilterExpression: "ORG_NUMBER = :num",
+        ExpressionAttributeValues: {
+            ":num": "000"
         },
-        ProjectionExpression: "ID, ACTIVITY_TITLE, ACTIVITY_CONTENT_IMG, ACTIVITY_COVER,VIDEOS"
+        ProjectionExpression: "ACTIVITIES"
     };
     return new Promise((resolve, reject) => {
-        docClient.get(params, function (err, data) {
+        docClient.scan(params, function (err, data) {
             if (err) {
                 console.log(JSON.stringify(err));
                 reject(err);
             } else {
-                resolve(data.Item);
+                data.Items[0].ACTIVITIES.forEach(item => {
+                    if (item.ACTIVITY_ID == activity_id) {
+                        resolve(item);
+                    }
+                })
             }
         });
     });
@@ -40,7 +45,7 @@ exports.handler = (event, context, callback) => {
 
     docClient.get(params, function (err, data) {
         if (err) {
-            console.log(JSON.stringify(err));
+            console.error(JSON.stringify(err));
             callback(err, null);
         } else {
             var result = data.Item;

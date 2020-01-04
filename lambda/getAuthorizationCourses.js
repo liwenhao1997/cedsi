@@ -25,22 +25,20 @@ function getAccountCode(id) {
     });
 }
 
-function getCourses(code) {
+function getCourses(org_id) {
     var params = {
         TableName: 'CEDSI_ORG',
-        IndexName: "ORG_CODE",
-        KeyConditionExpression: 'ORG_CODE = :code',
-        ExpressionAttributeValues: {
-            ':code': code
+        Key: {
+            ORG_ID: org_id
         },
         ProjectionExpression: "AUTHORIZATION_COURSES"
     };
     return new Promise((resolve, reject) => {
-        docClient.query(params, function (err, data) {
+        docClient.get(params, function (err, data) {
             if (err) {
                 reject(err);
             } else {
-                resolve(data.Items[0]);
+                resolve(data.Item);
             }
         });
     });

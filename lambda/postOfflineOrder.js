@@ -22,7 +22,6 @@ function insertOfflineOrder(event) {
   };
   event.FORM = JSON.parse(event.FORM);
   Object.keys(event.FORM).forEach(item => {
-    console.log(event.FORM[item]);
     Item[item.toUpperCase()] = event.FORM[item];
   });
   let params = {

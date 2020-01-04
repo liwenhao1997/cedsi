@@ -6,30 +6,56 @@ AWS.config = new AWS.Config({
 
 var docClient = new AWS.DynamoDB.DocumentClient;
 
-function checkOrder(order_id) {
+function getIndex(userId, orderId) {
     var params = {
-        TableName: 'STUDENT_ORDER',
+        TableName: "AUTH_USER",
         Key: {
-            ORDER_ID: order_id
+            USER_ID: userId
         },
-        ProjectionExpression: "PAY_STATUS"
+        ProjectionExpression: "USER_ORDER"
+    };
+    return new Promise((resolve, reject) => {
+        docClient.get(params, function (err, data) {
+            if (err) {
+                console.log(JSON.stringify(err));
+                reject(err);
+            } else {
+                var index = 0;
+                data.Item.USER_ORDER.forEach(element => {
+                    if (element.ORDER_ID == orderId) {
+                        resolve(index);
+                    }
+                    index++;
+                });
+            }
+        });
+    })
+}
+
+function checkOrder(user_id, order_id) {
+    var params = {
+        TableName: 'AUTH_USER',
+        Key: {
+            USER_ID: user_id
+        },
+        ProjectionExpression: "USER_ORDER"
     };
     return new Promise((resolve, reject) => {
         docClient.get(params, function (err, data) {
             if (err) {
                 console.error(JSON.stringify(err));
             } else {
-                if (data.Item && data.Item.PAY_STATUS == "SUCCESS") {
-                    resolve(true);
-                } else {
-                    reject(false);
-                }
+                data.Item.USER_ORDER.forEach(item => {
+                    if (item.ORDER_ID == order_id && item.PAY_STATUS == "SUCCESS") {
+                        resolve(true);
+                    }
+                })
             }
         });
     });
 }
 
-function addProduct(order_id, id,cover) {
+function addProduct(order_id, id, cover) {
     var params = {
         TableName: 'STUDENT_ORDER',
         Key: {
@@ -45,12 +71,7 @@ function addProduct(order_id, id,cover) {
         docClient.update(params, function (err, data) {
             if (err) {
                 console.error(JSON.stringify(err));
-            // } else {
-            //     if (data.Item && data.Item.PAY_STATUS == "SUCCESS") {
-            //         resolve(true);
-            //     } else {
-            //         reject(false);
-            //     }
+
             }
         });
     });
@@ -62,51 +83,42 @@ exports.handler = (event, context, callback) => {
     var id = event.principalId;
     var course_id = event.course_id;
     var cover = event.cover;
-    if (order_id == "") {
-        var params = {
-            TableName: 'CEDSI_STUDENT_COURSE_INFO',
-            Item: {
-                "STUDENT_ID": id,
-                "COURSE_ID": course_id,
-                "FINISH_CHAPTER": [],
-                "CREATE_TIME": Date.now()
-            }
-        };
-        docClient.put(params, function(err, data) {
-            if (err) {
-                console.log(JSON.stringify(err));
-                callback(err, null);
-            } else {
-                callback(null, {
-                    status: "ok"
-                });
-            }
-        });
-    } else {
-    addProduct(order_id, course_id,cover);
+    if (order_id != "") {
+        addProduct(order_id, course_id, cover);
+    }
+
     checkOrder(order_id).then(data => {
-        var params = {
-            TableName: 'CEDSI_STUDENT_COURSE_INFO',
-            Item: {
-                "STUDENT_ID": id,
+        if (data) {
+            var course = {
                 "COURSE_ID": course_id,
                 "FINISH_CHAPTER": [],
                 "CREATE_TIME": Date.now()
             }
-        };
-        docClient.put(params, function(err, data) {
-            if (err) {
-                console.log(JSON.stringify(err));
-                callback(err, null);
-            } else {
-                callback(null, {
-                    status: "ok"
-                });
-            }
-        });
+            var params = {
+                TableName: 'CEDSI_STUDENT',
+                Key: {
+                    USER_ID: id
+                },
+                UpdateExpression: 'SET COURSE_INFO = list_append(if_not_exists(COURSE_INFO, :empty_object), :course)',
+                ExpressionAttributeValues: {
+                    ":empty_object": [],
+                    ":course": course
+                }
+            };
+            docClient.update(params, function (err, data) {
+                if (err) {
+                    console.error(JSON.stringify(err));
+                    callback(err, null);
+                } else {
+                    callback(null, {
+                        status: "ok"
+                    });
+                }
+            });
+        }
     }).catch(err => {
         console.error(JSON.stringify(err));
         callback("订单无效", null);
     });
-    }
+
 };

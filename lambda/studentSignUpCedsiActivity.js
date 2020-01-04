@@ -11,22 +11,28 @@ exports.handler = (event, context, callback) => {
         response.err = "非法访问!";
         callback(response, null);
     }
+    var activity = {
+        ACTIVITY_ID: event.avtivity_id,
+        JOIN_TIME: Date.now()
+    };
     let params = {
-        TableName: 'CEDSI_STUDENT_CEDSI_ACTIVITY',
-        Item: {
-            ACTIVITY_ID: event.avtivity_id,
-            USER_ID: event.principalId,
-            JOIN_TIME: Date.now()
+        TableName: 'CEDSI_STUDENT',
+        Key: {
+            USER_ID: event.principalId
+        },
+        UpdateExpression: 'SET ACTIVITIES = list_append(if_not_exists(ACTIVITIES, :empty_object), :activity)',
+        ExpressionAttributeValues: {
+            ":empty_object": [],
+            ":activity": activity
         }
     };
-    docClient.put(params, function (err, data) {
+    docClient.update(params, function (err, data) {
         if (err) {
-            console.log(JSON.stringify(err));
+            console.error(JSON.stringify(err));
             callback(err, null);
         }
         else {
-            console.log(data);
-            callback(null, { status: 200 });
+            callback(null, { status: "ok" });
         }
     });
 };

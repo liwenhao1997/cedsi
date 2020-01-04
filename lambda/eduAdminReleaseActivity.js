@@ -20,7 +20,7 @@ function getToken() {
   });
 }
 
-function getORGCode(principalId) {
+function getOrgId(principalId) {
   let params = {
     TableName: 'AUTH_USER',
     Key: { USER_ID: principalId },
@@ -53,40 +53,47 @@ exports.handler = (event, context, callback) => {
   let onlyId = uuid.v4();
   let imgId = onlyId.substring(0, 8);
   let cover = "https://cedsi.s3.cn-northwest-1.amazonaws.com.cn/eduActivity/";
-  let params = {
-    TableName: 'CEDSI_EDUADMIN_ACTIVITY',
-    Item: {
-      "ACTIVITY_TITLE": event.activityTitle,
-      "ACTIVITY_ID": onlyId,
-      "ACTIVITY_PLACE": event.activityPlace,
-      "ACTIVITY_TIME": event.activityTime,
-      "ACTIVITY_COVER": `${cover}${imgId}1${event.coverType}`,
-      "ACTIVITY_CONTENT_IMG": `${cover}${imgId}2${event.imgType}`,
-      "PRINCIPAL_ID": event.principalId,
-      "ACTIVITY_PRICE": 0
-      // "ACTIVITY_PRICE": event.activityPrice
-    }
+  var activity = {
+    "ACTIVITY_TITLE": event.activityTitle,
+    "ACTIVITY_ID": onlyId,
+    "ACTIVITY_PLACE": event.activityPlace,
+    "ACTIVITY_TIME": event.activityTime,
+    "ACTIVITY_COVER": `${cover}${imgId}1${event.coverType}`,
+    "ACTIVITY_CONTENT_IMG": `${cover}${imgId}2${event.imgType}`,
+    "PRINCIPAL_ID": event.principalId,
+    // "ACTIVITY_PRICE": 0
+    "FORM_DETAIL": event.formDetail == null ? "null" : JSON.parse(event.formDetail),
+    "VIDEOS": event.videoType === null ? [] : [`${baseURL}${imgId}3${event.videoType}`],
+    "ACTIVITY_PRICE": event.activityPrice
   };
+  
 
-  getORGCode(event.principalId)
+  getOrgId(event.principalId)
     .then(res => {
-      params.Item.ORG_CODE = res.Item.ACCOUNT_ID || "null";
+      let params = {
+        TableName: 'CEDSI_ORG',
+        Key: {
+          ORG_ID: res.Item.ACCOUNT_ID
+        },
+        UpdateExpression: "SET ACTIVITIES = list_append(if_not_exists(ACTIVITIES, :empty_object), :activity)",
+            ExpressionAttributeValues: {
+                ":empty_object": [],
+                ":activity": activity
+              }
+      };
       return insertActivity(params);
     })
     .then(res => {
-      console.log(res);
       return getToken();
     })
     .then(data => {
-      console.log(JSON.stringify(data));
       data.Credentials.id = imgId;
       response.status = '200 OK';
       response.data = data.Credentials;
       callback(null, response);
     })
     .catch(err => {
-      console.log("ERROR!");
-      console.log(JSON.stringify(err));
+      console.error(JSON.stringify(err));
       callback(err, null);
     });
 };

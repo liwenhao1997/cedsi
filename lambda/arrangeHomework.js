@@ -22,23 +22,30 @@ function getToken() {
 
 function arrangeHomeworkPromise(event) {
   let baseURL = "https://cedsi.s3.cn-northwest-1.amazonaws.com.cn";
+  var homework = {
+    HOMEWORK_ID: event.ONLY_ID,
+    CLASS_ID: event.CLASS_ID,
+    COURSE_ID: event.COURSE_ID,
+    CONTENT: `${baseURL}/content/${event.ONLY_ID}${event.CONTENT_TYPE}`,
+    CP_ID: event.CP_ID,
+    DEADLINE: event.DEADLINE,
+    HW_NAME: event.HW_NAME,
+    ATTACHED_FILE: `/preHomework/attachedFile/${event.ONLY_ID}${event.FILE_TYPE}`
+  };
   let params = {
-    TableName: "CEDSI_TEACHER_HOMEWORK",
-    Item: {
-      HOMEWORK_ID: event.ONLY_ID,
-      CLASS_ID: event.CLASS_ID,
-      COURSE_ID: event.COURSE_ID,
-      CONTENT: `${baseURL}/content/${event.ONLY_ID}${event.CONTENT_TYPE}`,
-      CP_ID: event.CP_ID,
-      DEADLINE: event.DEADLINE,
-      HW_NAME: event.HW_NAME,
-      WHO_POST: event.principalId,
-      ATTACHED_FILE: `/preHomework/attachedFile/${event.ONLY_ID}${event.FILE_TYPE}`
+    TableName: "CEDSI_TEACHER",
+    Key: {
+      TEACHER_ID: event.principalId
+    },
+    UpdateExpression: "SET HOMEWORKS = list_append(if_not_exists(HOMEWORKS, :empty_object), :homework)",
+    ExpressionAttributeValues: {
+      ":empty_object": [],
+      ":homework": homework
     }
   };
   return new Promise((resolve, reject) => {
     docClient.put(params, function (err, data) {
-        err ? reject(err) : resolve(data);
+      err ? reject(err) : resolve(data);
     });
   });
 }
@@ -60,14 +67,12 @@ exports.handler = (event, context, callback) => {
       return getToken();
     })
     .then(data => {
-      console.log(JSON.stringify(data));
       data.Credentials.id = event.ONLY_ID;
       response.status = 200;
       response.data = data.Credentials;
       callback(null, response);
     })
     .catch(err => {
-      console.log("ERROR!");
-      console.log(JSON.stringify(err));
+      console.error(JSON.stringify(err));
     });
 };

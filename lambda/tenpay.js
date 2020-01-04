@@ -27,24 +27,31 @@ function getLambdaExportIP() {
  * @param {Object} event
  * @returns
  */
+
+
 function putPreOrder(event) {
+  var order = {
+    ORDER_ID: event.orderId,
+    PAY_STATUS: "ONPAYING",
+    COMMIT_TIME: Date.now().toString(),
+    FEE: event.fee,
+    PRODUCT_NAME: event.productName,
+    OPEN_ID: event.openid ? event.openid : "null"
+  };
   let params = {
-    TableName: "STUDENT_ORDER",
-    Item: {
-      ORDER_ID: event.orderId,
-      PAY_STATUS: "ONPAYING",
-      COMMIT_TIME: Date.now().toString(),
-      FEE: event.fee,
-      PRODUCT_NAME: event.productName,
-      USER_ID: event.principalId,
-      OPEN_ID: event.openid ? event.openid : "null"
+    TableName: 'AUTH_USER',
+    Key: {
+      USER_ID: event.principalId
+    },
+    UpdateExpression: 'SET USER_ORDER = list_append(if_not_exists(USER_ORDER, :empty_object), :order)',
+    ExpressionAttributeValues: {
+      ":empty_object": [],
+      ":order": order
     }
   };
-  if (!params.Item.ORDER_ID) {
-    delete params.Item.ORDER_ID;
-  }
+  
   return new Promise((resolve, reject) => {
-    docClient.put(params, function (err, data) {
+    docClient.update(params, function (err, data) {
       err ? reject(err) : resolve(data);
     });
   });
@@ -69,7 +76,7 @@ function getUnifiedOrder(event) {
     "product_id": event.productId,
     "sign_type": "MD5",
     "spbill_create_ip": event.ip,
-    "total_fee": Number.parseFloat(event.fee/100),
+    "total_fee": Number.parseFloat(event.fee / 100),
     "trade_type": "NATIVE",
   };
   params.sign = sign(params, event.key);

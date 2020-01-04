@@ -24,13 +24,13 @@ exports.handler = (event, context, callback) => {
         },
         UpdateExpression: "set USER_STATUS = #status",
         ExpressionAttributeValues: {
-            "#status": "DISABLE"
+            "#status": "disable"
         }
     };
 
     docClient.update(params, function (err, data) {
         if (err) {
-            console.log(JSON.stringify(err));
+            console.error(JSON.stringify(err));
             response.status = "fail";
             response.err = err;
             callback(response,null);

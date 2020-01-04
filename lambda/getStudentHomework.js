@@ -9,25 +9,25 @@ const docClient = new AWS.DynamoDB.DocumentClient();
 
 function getHomework(studentId, course_id) {
     var homework = {
-        TableName: 'CEDSI_STUDENT_HOMEWORK',
-        IndexName: "STUDENT_ID",
-        ProjectionExpression: "HW_ID, HW_NAME, HW_COVER, HW_URL, SUBMIT_TIME,TEACHER_REMARK,HW_RANK,HW_GUIDE",
-        KeyConditionExpression: "STUDENT_ID = :stuId",
-        FilterExpression: "COURSE_ID = :cid",
-        ExpressionAttributeValues: {
-            ":stuId": studentId,
-            ":cid": course_id
-        }
+        TableName: 'CEDSI_STUDENT',
+        Key: {
+            USER_ID: studentId
+        },
+        ProjectionExpression: "HOMEWORKS"
     };
 
     // 表扫描
     return new Promise((resolve, reject) => {
-        docClient.query(homework, function (err, data) {
+        docClient.get(homework, function (err, data) {
             if (err) {
                 console.log(err);
                 reject(err);
             } else {
-                resolve(data.Items);
+                data.Item.HOMEWORKS.forEach(item => {
+                    if (item.COURSE_ID == course_id) {
+                        resolve(item);
+                    }
+                })
             }
         });
     });

@@ -11,34 +11,61 @@ function updateHomeworkRemark(params) {
   });
 }
 
+function getIndex(userId, workId) {
+  var params = {
+    TableName: "CEDSI_STUDENT",
+    Key: {
+      USER_ID: userId
+    },
+    ProjectionExpression: "HOMEWORKS"
+  };
+  return new Promise((resolve, reject) => {
+    docClient.get(params, function (err, data) {
+      if (err) {
+        console.error(JSON.stringify(err));
+        reject(err);
+      } else {
+        var index = 0;
+        data.Item.HOMEWORKS.forEach(element => {
+          if (element.HW_ID == workId) {
+            resolve(index);
+          }
+          index++;
+        });
+      }
+    });
+  })
+}
 exports.handler = (event, context, callback) => {
   let response = {};
-  let params = {
-    TableName: 'CEDSI_STUDENT_HOMEWORK',
-    Key: { HW_ID: event.homeworkId },
-    UpdateExpression: 'set #R = :R, #K = :K, #S = :S',
-    ExpressionAttributeNames: { '#R': 'TEACHER_REMARK', '#K': 'HW_RANK', '#S': 'SELECTED_WORKS' },
-    ExpressionAttributeValues: {
-      ':R': event.teacherRemark,
-      ':K': event.homeworkRank,
-      ':S': event.selectedWork
-    }
-  };
-  
-  console.log(JSON.stringify(event));
   if (event.role != '2') {
     response.status = 'fail';
     response.err = "非法访问!";
     callback(response, null);
   }
-
-  updateHomeworkRemark(params)
-    .then(res => {
-      console.log(JSON.stringify(res));
-      callback(null, { status: 200 });
-    })
-    .catch(err => {
-      callback(err, null);
-      console.log(JSON.stringify(err));
-    });
+  
+  getIndex(event.principalId, event.homeworkId).then(index => {
+    let params = {
+      TableName: 'CEDSI_STUDENT',
+      Key: {
+        USER_ID: event.principalId
+      },
+      UpdateExpression: 'set HOMEWORKS[:index].TEACHER_REMARK = :R, HOMEWORKS[:index].HW_RANK = :K, HOMEWORKS[:index].SELECTED_WORKS = :S',
+      ExpressionAttributeValues: {
+        ':R': event.teacherRemark,
+        ':K': event.homeworkRank,
+        ':S': event.selectedWork,
+        ":index": index
+      }
+    };
+  
+    updateHomeworkRemark(params)
+      .then(() => {
+        callback(null, { status: "ok" });
+      })
+      .catch(err => {
+        callback(err, null);
+        console.error(JSON.stringify(err));
+      });
+  })
 };

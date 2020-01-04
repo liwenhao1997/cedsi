@@ -5,14 +5,14 @@ var docClient = new AWS.DynamoDB.DocumentClient;
 
 function getChapterNames(courseId) {
   let params = {
-    TableName: "CEDSI_CHAPTERS",
-    IndexName: 'COURSE_ID',
-    KeyConditionExpression: 'COURSE_ID=:id',
-    ExpressionAttributeValues: { ':id': courseId },
-    ProjectionExpression: "CP_ID,CP_NAME"
+    TableName: "CEDSI_CURRICULUMS",
+    Key: {
+      ID: courseId
+    },
+    ProjectionExpression: "CHAPTERS"
   };
   return new Promise((resolve, reject) => {
-    docClient.query(params, function (err, data) {
+    docClient.get(params, function (err, data) {
       err ? reject(err) : resolve(data);
     });
   });
@@ -31,11 +31,10 @@ exports.handler = (event, context, callback) => {
 
   getChapterNames(event.course_id)
     .then(res => {
-      console.log(JSON.stringify(res));
-      callback(null, res.Items);
+      callback(null, res.Item.CHAPTERS);
     })
     .catch(err => {
-      console.log(JSON.stringify(err));
+      console.error(JSON.stringify(err));
       callback(err, null);
     });
 };

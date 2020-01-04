@@ -11,7 +11,31 @@ function updateHomework(params) {
     });
   });
 }
-
+function getIndex(teacherId, workId) {
+  var params = {
+      TableName: "CEDSI_TEACHER",
+      Key: {
+        TEACHER_ID: teacherId
+      },
+      ProjectionExpression: "HOMEWORKS"
+  };
+  return new Promise((resolve, reject) => {
+      docClient.get(params, function (err, data) {
+          if (err) {
+              console.error(JSON.stringify(err));
+              reject(err);
+          } else {
+              var index = 0;
+              data.Item.HOMEWORKS.forEach(element => {
+                  if (element.HOMEWORK_ID == workId) {
+                      resolve(index);
+                  }
+                  index++;
+              });
+          }
+      });
+  })
+}
 exports.handler = (event, context, callback) => {
 
   let response = {};
@@ -22,33 +46,30 @@ exports.handler = (event, context, callback) => {
     return;
   }
 
-  let params = {
-    TableName: 'CEDSI_TEACHER_HOMEWORK',
-    Key: { 'HOMEWORK_ID': event.HW_ID},
-    UpdateExpression: 'set #b = :B, #c = :C, #d = :D, #e = :E, #f = :F, #g = :G',
-    ExpressionAttributeNames: {
-      '#b': 'DEADLINE',
-      '#c': 'CLASS_ID',
-      '#d': 'COURSE_ID',
-      '#e': 'CP_ID',
-      '#f': 'CONTENT',
-      '#g': 'HW_NAME',
-    },
-    ExpressionAttributeValues: {
-      ':B': event.DEADLINE,
-      ':C': event.CLASS_ID,
-      ':D': event.COURSE_ID,
-      ':E': event.CP_ID,
-      ':F': event.CONTENT,
-      ':G': event.HW_NAME,
-    }
-  };
-  updateHomework(params)
-    .then(res => {
-      console.log(JSON.stringify(res));
-      callback(null, { status: 200 });
-    })
-    .catch(err => {
-      console.log(JSON.stringify(err));
-    });
+  getIndex(event.principalId, event.HW_ID).then(index => {
+    let params = {
+      TableName: 'CEDSI_TEACHER',
+      Key: {
+        'TEACHER_ID': event.principalId
+      },
+      UpdateExpression: 'set HOMEWORKS[:index]DEADLINE = :B, HOMEWORKS[:index]CLASS_ID = :C, HOMEWORKS[:index]COURSE_ID = :D, HOMEWORKS[:index]CP_ID = :E, HOMEWORKS[:index]CONTENT = :F, HOMEWORKS[:index].HW_NAME = :G',
+      ExpressionAttributeValues: {
+        ':B': event.DEADLINE,
+        ':C': event.CLASS_ID,
+        ':D': event.COURSE_ID,
+        ':E': event.CP_ID,
+        ':F': event.CONTENT,
+        ':G': event.HW_NAME,
+        ":index": index
+      }
+    };
+    updateHomework(params)
+      .then(() => {
+        callback(null, { status: "ok" });
+      })
+      .catch(err => {
+        console.error(JSON.stringify(err));
+        callback(err, null);
+      });
+  })
 };

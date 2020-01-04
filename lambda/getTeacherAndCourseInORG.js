@@ -6,70 +6,49 @@ AWS.config.update({
 
 var docClient = new AWS.DynamoDB.DocumentClient();
 
-function getAuthorizationCourse(code) {
+function getAuthorizationCourse(org_id) {
     var params = {
         TableName: 'CEDSI_ORG',
-        IndexName: 'ORG_CODE',
-        KeyConditionExpression: 'ORG_CODE = :id',
-        ExpressionAttributeValues: {
-            ':id': code
+        Key: {
+            ORG_ID: org_id
         },
         ProjectionExpression: "AUTHORIZATION_COURSES"
     };
     return new Promise((resolve, reject) => {
-        docClient.query(params, function(err, data) {
+        docClient.get(params, function (err, data) {
             if (err) {
                 reject(err);
             } else {
-                resolve(data.Items[0].AUTHORIZATION_COURSES);
+                resolve(data.Item.AUTHORIZATION_COURSES);
             }
         });
     });
 }
-// function getCourseName(list) {
-//     var request = [];
-//     list.forEach(element => {
-//         request.push({
-//             ID: element
-//         });
-//     });
-//     var params = {
-//         RequestItems: {
-//             'CEDSI_CURRICULUMS': {
-//                 Keys: request,
-//                 ProjectionExpression: "COURSE_NAME,ID"
-//             }
-//         }
-//     };
-//     return new Promise((resolve, reject) => {
-//         docClient.batchGet(params, function(err, data) {
-//             if(err) {
-//                 reject(err);
-//             } else {
-//                 resolve(data.Responses.CEDSI_CURRICULUMS);
-//             }
-//         });
-//     });
-// }
-function getTeachers(code) {
+
+function getTeachers(org_id) {
     var params = {
-        TableName: 'CEDSI_TEACHER',
-        IndexName: 'ORG_CODE',
-        KeyConditionExpression: 'ORG_CODE = :code',
-        FilterExpression: "TEACHER_STATUS = :s",
-        ExpressionAttributeValues: {
-            ':code': code,
-            ':s': "active"
+        TableName: 'CEDSI_ORG',
+        Key: {
+            ORG_ID: org_id
         },
-        
-        ProjectionExpression: "TEACHER_ID,TEACHER_NAME"
+        ProjectionExpression: "TEACHERS"
     };
     return new Promise((resolve, reject) => {
-        docClient.query(params, function(err, data) {
+        docClient.get(params, function (err, data) {
             if (err) {
                 reject(err);
             } else {
-                resolve(data.Items);
+                var result = [];
+                var index = 0;
+                data.Item.TEACHERS.forEach(item => {
+                    index++;
+                    if (item.TEACHER_STATUS != "disable") {
+                        result.push(item);
+                    }
+                    if (index == data.Item.TEACHERS.length) {
+                        resolve(result);
+                    }
+                })
             }
         });
     });
@@ -87,7 +66,7 @@ function getAccountCode(id) {
             if (err) {
                 reject(err);
             } else {
-                resolve(data.Item); 
+                resolve(data.Item);
             }
         });
     });
@@ -98,7 +77,7 @@ exports.handler = (event, context, callback) => {
     if (event.role != "3") {
         response.status = "fail";
         response.err = "非法访问";
-        callback(response,null);
+        callback(response, null);
         return;
     }
     var id = event.principalId;
@@ -106,11 +85,9 @@ exports.handler = (event, context, callback) => {
         getTeachers(data0.ACCOUNT_ID).then(data => {
             response.teacher = data;
             getAuthorizationCourse(data0.ACCOUNT_ID).then(data => {
-                //getCourseName(data).then(data => {
-                    response.course = data;
-                    response.status = "ok";
-                    callback(null, response);
-                //});
+                response.course = data;
+                response.status = "ok";
+                callback(null, response);
             });
         });
     });

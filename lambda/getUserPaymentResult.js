@@ -57,29 +57,62 @@ function sign(params, key) {
  *
  * @returns
  */
-function updateOrderStatus(orderId) {
-  let params = {
-    TableName: "STUDENT_ORDER",
-    Key: { ORDER_ID: orderId },
-    UpdateExpression: 'set PAY_STATUS = :R',
-    ExpressionAttributeValues: { ':R': "SUCCESS" }
+function getIndex(userId, orderId) {
+  var params = {
+    TableName: "AUTH_USER",
+    Key: {
+      USER_ID: userId
+    },
+    ProjectionExpression: "USER_ORDER"
   };
   return new Promise((resolve, reject) => {
-    docClient.update(params, (err, data) => {
-      err ? reject(err) : resolve(data);
+    docClient.get(params, function (err, data) {
+      if (err) {
+        console.log(JSON.stringify(err));
+        reject(err);
+      } else {
+        var index = 0;
+        data.Item.USER_ORDER.forEach(element => {
+          if (element.ORDER_ID == orderId) {
+            resolve(index);
+          }
+          index++;
+        });
+      }
     });
-  });
+  })
+}
+function updateOrderStatus(userId, orderId) {
+  return new Promise((resolve, reject) => {
+    getIndex(userId, orderId).then(index => {
+      let params = {
+        TableName: "AUTH_USER",
+        Key: {
+          USER_ID: user_id
+        },
+        UpdateExpression: 'set USER_ORDER[:index].PAY_STATUS = :s',
+        ExpressionAttributeValues: {
+          ':s': "SUCCESS",
+          ":index": index
+        }
+      };
+      docClient.update(params, (err, data) => {
+        if (err) {
+          reject(err)
+        }
+      });
+    });
+  })
 }
 
 exports.handler = async event => {
   let res = await orderQuery(event.orderId);
   let { xml } = convert.xml2js(res);
-  console.log(xml);
   let isReturnCodeRight = xml.return_code === "SUCCESS";
   let isResultCodeRight = xml.result_code === "SUCCESS";
   let isTradeStateRight = xml.trade_state === "SUCCESS";
   if (isReturnCodeRight && isResultCodeRight && isTradeStateRight) {
-    await updateOrderStatus(event.orderId);
+    await updateOrderStatus(event.principalId, event.orderId);
     return "SUCCESS";
   }
   return "FAIL";

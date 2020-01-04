@@ -1,6 +1,10 @@
-AWS.config.update({
-    region: 'cn-northwest-1',
-    accessKeyId: AKIAS6QS63NLP4SVOAXL,
-    secretAccessKey: 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
-});
+
 管理员删除章节时增加参数courseId
+管理员不应该有发布活动
+删除视频增加课程ID
+eduAdminGetParticipatingStudents改不了
+getActivity
+getArrangedHomework
+studentSubmitHomework
+teacherReleaseHomework
+uploadVideo需要重新设计

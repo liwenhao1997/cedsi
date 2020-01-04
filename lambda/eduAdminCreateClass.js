@@ -27,11 +27,11 @@ function getAccountCode(id) {
 }
 exports.handler = (event, context, callback) => {
     console.log(JSON.stringify(event));
-    if(event.role != "3") {
+    if (event.role != "3") {
         var response = {};
         response.status = "fail";
         response.err = "非法访问";
-        callback(response,null);
+        callback(response, null);
         return;
     }
     var class_name = event.class_name;
@@ -43,28 +43,33 @@ exports.handler = (event, context, callback) => {
     var class_id = uuid.v4();
 
     getAccountCode(id).then(data => {
+        var clazz = {
+            "CLASS_ID": class_id,
+            "CLASS_NAME": class_name,
+            "COURSE_ID": course_id,
+            "COURSE_NAME": course_name,
+            "HISTORY_COURSE": [],
+            "TEACHER_ID": teacher_id,
+            "CLASS_MEMBER_COUNT": 0,
+            "CREATE_TIME": Date.now()
+        }
         var params = {
             TableName: 'CEDSI_CLASS',
-            Item: {
-                "CLASS_ID": class_id,
-                "CLASS_NAME": class_name,
-                "COURSE_ID": course_id,
-                "COURSE_NAME": course_name,
-                "HISTORY_COURSE": [],
-                "ORG_CODE": data.ACCOUNT_ID,
-                "TEACHER_ID": teacher_id,
-                "CLASS_MEMBER_COUNT": 0,
-                "CREATE_TIME": Date.now()
+            Key: {
+                ORG_ID: data.ACCOUNT_ID
+            },
+            UpdateExpression: "SET ORG_CLASSES = list_append(if_not_exists(ORG_CLASSES, :empty_object), :class)",
+            ExpressionAttributeValues: {
+                ":empty_object": [],
+                ":class": clazz
             }
         };
-        console.log(params);
         docClient.put(params, function (err, data) {
             if (err) {
-                console.log(JSON.stringify(err));
+                console.error(JSON.stringify(err));
                 callback(err, null);
             } else {
-                console.log(data);
-                callback(null, {status: "ok", classId: class_id});
+                callback(null, { status: "ok", classId: class_id });
             }
         });
     });

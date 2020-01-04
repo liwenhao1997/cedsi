@@ -37,11 +37,6 @@ exports.handler = (event, context, callback) => {
       data = res.Item;
       delete data.PRINCIPAL_ID;
       callback(null, data);
-      // return getPrincipalAvatar(res.Item.PRINCIPAL_ID);
-      // })
-      // .then(res => {
-      //   console.log(JSON.stringify(res));
-      //   data.AVATAR = res.Item.AVATAR;
     })
     .catch(err => {
       console.log("Error!");

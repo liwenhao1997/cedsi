@@ -6,32 +6,66 @@ AWS.config.update({
 
 var docClient = new AWS.DynamoDB.DocumentClient();
 
+function getAccountCode(id) {
+    var params = {
+        TableName: 'CEDSI_TEACHER',
+        Key: {
+            TEACHER_ID: id
+        },
+        ProjectionExpression: "ORG_ID"
+    };
+    return new Promise((resolve, reject) => {
+        docClient.get(params, function (err, data) {
+            if (err) {
+                reject(err);
+            } else {
+                resolve(data.Item);
+            }
+        });
+    });
+}
 exports.handler = (event, context, callback) => {
     var response = {};
     if (event.role != "2") {
         response.status = "fail";
         response.data = "非法访问";
-        callback(response,null);
+        callback(response, null);
         return;
     }
     var class_id = event.class_id;
-    var params = {
-        TableName: 'CEDSI_STUDENT_HOMEWORK',
-        IndexName: 'CLASS_ID',
-        KeyConditionExpression: 'CLASS_ID = :id',
-        ExpressionAttributeValues: {
-            ':id': class_id
-        },
-        ProjectionExpression: "HW_ID,COURSE_NAME,CP_NAME,HW_DESCRIPTION,HW_GUIDE,HW_NAME,HW_RANK,HW_URL,STUDENT_ID,STUDENT_NAME,SUBMIT_TIME,TEACHER_REMARK"
-    };
-    docClient.query(params, function (err, data) {
-        if (err) {
-            console.error(JSON.stringify(err));
-            callback(err, null);
-        } else {
-            response.status = "ok";
-            response.data = data.Items;
-            callback(null,response);
-        }
-    });
+    getAccountCode(event.principalId).then(org_id => {
+        var params = {
+            TableName: 'CEDSI_STUDENT',
+            IndexName: 'ORG_ID',
+            KeyConditionExpression: 'ORG_ID = :id',
+            ExpressionAttributeValues: {
+                ':id': org_id
+            },
+            ProjectionExpression: "HOMEWORKS"
+        };
+        docClient.query(params, function (err, data) {
+            if (err) {
+                console.error(JSON.stringify(err));
+                callback(err, null);
+            } else {
+                var result = [];
+                var i = 0;
+                data.Items.every(item => {
+                    item.HOMEWORKS.every(ele => {
+                        if (ele.CLASS_ID == class_id) {
+                            ele.STUDENT_ID = item.USER_ID;
+                            ele.STUDENT_NAME = item.STUDENT_INFO.STUDENT_NAME;
+                            result.push(ele);
+                            return false;
+                        }
+                    })
+                    if (++i == data.Items.length) {
+                        response.status = "ok";
+                        response.data = result;
+                        callback(null, response);
+                    }
+                })
+            }
+        });
+    })
 };

@@ -84,10 +84,8 @@ exports.handler = (event, context, callback) => {
             TableName: 'CEDSI_STUDENT',
             IndexName: 'ORG_ID',
             KeyConditionExpression: 'ORG_ID = :id',
-            // FilterExpression: "CLASS_ID <> :cid",
             ExpressionAttributeValues: {
                 ':id': data.ACCOUNT_ID
-                // ':cid': class_id
             }
         };
         docClient.query(params, async function (err, data) {
@@ -96,9 +94,8 @@ exports.handler = (event, context, callback) => {
                 callback(err, null);
             } else {
                 check(data.Items, class_id).then(data0 => {
-                    console.log(data0)
                     response.status = "ok";
-                    data0 = data0.sort(keysort("STUDENT_ID", false));
+                    data0 = data0.sort(keysort("STUDENT_INFO.STUDENT_ID", false));
                     result.push(data0[0]);
                     var i = 1;
                     if(data0.length == 1) {

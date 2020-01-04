@@ -6,28 +6,40 @@ AWS.config.update({
 
 var docClient = new AWS.DynamoDB.DocumentClient;
 
-function checkChapter(cp_id,course_id,id) {
+function checkChapter(cp_id, course_id, id) {
     var params = {
-        TableName: 'CEDSI_STUDENT_COURSE_INFO',
+        TableName: 'CEDSI_STUDENT',
         Key: {
-            STUDENT_ID: id,
-            COURSE_ID: course_id
-        }
+            USER_ID: id
+        },
+        ProjectionExpression: "COURSE_INFO"
     };
     return new Promise((resolve, reject) => {
-        docClient.get(params, function(err, data) {
+        docClient.get(params, function (err, data) {
             if (err) {
                 reject(err);
             } else {
-                var result = data.Item.FINISH_CHAPTER;
-                for (var i = 0; i < result.length; i++) {
-                    if (cp_id == result[i].CP_ID) {
-                        resolve(true);
+                var ids = 0;
+                data.Item.COURSE_INFO.forEach(item => {
+                    if (item.COURSE_ID == course_id) {
+                        var result = item.FINISH_CHAPTER;
+                        for (var i = 0; i < result.length; i++) {
+                            if (cp_id == result[i].CP_ID) {
+                                resolve({
+                                    exits: false
+                                });
+                            }
+                            if (i == result.length - 1) {
+                                resolve({
+                                    exits: true,
+                                    index: ids
+                                });
+                            }
+                        }
                     }
-                    if (i == result.length - 1) {
-                        resolve(false);
-                    }
-                }
+                    ids++;
+                })
+
             }
         });
     });
@@ -36,18 +48,18 @@ exports.handler = (event, context, callback) => {
     var cp_id = event.cp_id;
     var course_id = event.course_id;
     var id = event.principalId;
-    
-    checkChapter(cp_id,course_id,id).then(data => {
-        if (!data) {
+
+    checkChapter(cp_id, course_id, id).then(data => {
+        if (data.exits) {
             var params = {
-                TableName: 'CEDSI_STUDENT_COURSE_INFO',
+                TableName: 'CEDSI_STUDENT',
                 Key: {
-                    STUDENT_ID: id,
-                    COURSE_ID: course_id
+                    USER_ID: id
                 },
-                UpdateExpression: "SET FINISH_CHAPTER = list_append(if_not_exists(FINISH_CHAPTER, :empty_object), :data)",
+                UpdateExpression: "SET COURSE_INFO[:index].FINISH_CHAPTER = list_append(if_not_exists(COURSE_INFO[:index].FINISH_CHAPTER, :empty_object), :data)",
                 ExpressionAttributeValues: {
                     ":empty_object": [],
+                    ":index": data.index,
                     ":data": [{
                         "CP_FINISH_TIME": Date.now(),
                         "CP_ID": cp_id
@@ -57,11 +69,14 @@ exports.handler = (event, context, callback) => {
             docClient.update(params, function (err, data) {
                 if (err) {
                     console.error(JSON.stringify(err));
+                    callback(err, null);
                 } else {
-                    return;
+                    callback(null, {
+                        status: "ok"
+                    });
                 }
             });
         }
     });
-    
+
 };

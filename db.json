@@ -83,22 +83,6 @@
             "ORG_TYPE": "string",
             "TEACHERS": [
                 {
-                    "GENDER": "string",
-                    "HOMEWORKS": [
-                        {
-                            "ATTACHED_FILE": "string",
-                            "CLASS_ID": "string",
-                            "CONTENT": "string",
-                            "COURSE_ID": "string",
-                            "CP_ID": "string",
-                            "DEADLINE": "string",
-                            "HOMEWORK_ID": "string",
-                            "HW_NAME": "string"
-                        }
-                    ],
-                    "INTRO": "string",
-                    "JOB_NUMBER": "string",
-                    "RANK": "string",
                     "TEACHER_ID": "string",
                     "TEACHER_NAME": "string",
                     "TEACHER_STATUS": "string"
@@ -106,6 +90,23 @@
             ]
         },
         "CEDSI_STUDENT": {
+            "HOMEWORKS": [{
+                "CP_ID": "string",
+                "CP_NAME": "string",
+                "HW_NAME": "string",
+                "HW_DESCRIPTION": "string",
+                "HW_GUIDE": "string",
+                "HW_ID": "string",
+                "CLASS_ID": "string",
+                "COURSE_ID": "string",
+                "COURSE_NAME": "string",
+                "HW_URL": "string",
+                "DEADLINE": "string",
+                "HW_RANK": "string",
+                "TEACHER_REMARK": "string",
+                "SELECTED_WORKS": "bool",
+                "SUBMIT_TIME": "string"
+            }],
             "ACTIVITIES": [
                 {
                     "ACTIVITY_ID": "string",
@@ -123,6 +124,19 @@
                 }
             ],
             "ORG_ID": "string",
+            "STUDENT_MESSAGE": {
+                "ATTACHED_FILE": "string",
+                "COURSE_NAME": "string",
+                "CP_NAME": "string",
+                "DEADLINE": "string",
+                "DISPATCH_DATE": "string",
+                "DISPATCH_ID": "string",
+                "HW_NAME": "string",
+                "MESSAGE_CONTENT": "string",
+                "MESSAGE_ID": "string",
+                "MESSAGE_STATUS": "bool",
+                "MESSAGE_TYPE": "string"
+              },
             "STUDENT_INFO": {
                 "AGE": "string",
                 "AVATAR": "string",
@@ -150,7 +164,7 @@
             ],
             "INTRO": "string",
             "JOB_NUMBER": "string",
-            "ORG_CODE": "string",
+            "ORG_ID": "string",
             "RANK": "string",
             "TEACHER_ID": "string",
             "TEACHER_NAME": "string",

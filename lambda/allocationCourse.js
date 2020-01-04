@@ -6,41 +6,41 @@ AWS.config.update({
 
 var docClient = new AWS.DynamoDB.DocumentClient;
 
-function updateHistory(id, course_id, course_name, member_count,teacher_id) {
-    var data = {
-        "ID": course_id,
-        "MEMBER_COUNT": member_count,
-        "NAME": course_name,
-        "TEACHER": teacher_id
-    };
-    var params = {
-        TableName: 'CEDSI_CLASS',
-        Key: {
-            CLASS_ID: id
-        },
-        UpdateExpression: "SET HISTORY_COURSE = list_append(if_not_exists(HISTORY_COURSE, :empty_object), :data)",
-        ExpressionAttributeValues: {
-            ":empty_object": [],
-            ":data": [data]
-        }
-    };
-
-    docClient.update(params, function (err, data) {
-        if (err) {
-            console.log(JSON.stringify(err));
-        } else {
-            console.log(data);
-        }
-    });
+function updateHistory(org_id, class_id, course_id, course_name, member_count,teacher_id) {
+    getIndex(org_id, class_id).then(index => {
+        var data = {
+            "ID": course_id,
+            "MEMBER_COUNT": member_count,
+            "NAME": course_name,
+            "TEACHER": teacher_id
+        };
+        var params = {
+            TableName: 'CEDSI_ORG',
+            Key: {
+                ORG_ID: org_id
+            },
+            UpdateExpression: "SET ORG_CLASSES[:index].HISTORY_COURSE = list_append(if_not_exists(ORG_CLASSES[:index].HISTORY_COURSE, :empty_object), :data)",
+            ExpressionAttributeValues: {
+                ":empty_object": [],
+                ":data": [data]
+            }
+        };
+    
+        docClient.update(params, function (err, data) {
+            if (err) {
+                console.log(JSON.stringify(err));
+            } 
+        });
+    })
 }
 
-function getClassMsg(id) {
+function getClassMsg(org_id, class_id) {
     var params = {
-        TableName: 'CEDSI_CLASS',
+        TableName: 'CEDSI_ORG',
         Key: {
-            CLASS_ID: id
+            ORG_ID: org_id
         },
-        ProjectionExpression: "CLASS_MEMBER_COUNT,COURSE_NAME,COURSE_ID,TEACHER_ID"
+        ProjectionExpression: "ORG_CLASSES"
     };
 
     return new Promise((resolve, reject) => {
@@ -48,34 +48,85 @@ function getClassMsg(id) {
             if (err) {
                 reject(JSON.stringify(err));
             } else {
-                resolve(data.Item);
+                data.Item.ORG_CLASSES.forEach(item => {
+                    if (item.CLASS_ID == class_id) {
+                        resolve(item);
+                    }
+                })
             }
         });
     });
 }
 
-function updateCourseMsg(class_id, course_id, course_name,teacher_id) {
-    var params = {
-        TableName: 'CEDSI_CLASS',
-        Key: {
-            CLASS_ID: class_id
-        },
-        UpdateExpression: "SET COURSE_ID = :cid , COURSE_NAME = :cname , CLASS_MEMBER_COUNT = :count, TEACHER_ID = :teacher",
-        ExpressionAttributeValues: {
-            ":cid": course_id,
-            ":cname": course_name,
-            ":count": 0,
-            ":teacher": teacher_id
-        }
-    };
+function getOrgId(id) {
+    return new Promise((resolve, reject) => {
+        var params = {
+            TableName: "AUTH_USER",
+            Key: {
+                USER_ID: id
+            },
+            ProjectionExpression: "ACCOUNT_ID"
+        };
+        docClient.get(params, function (err, data) {
+            if (err) {
+                console.error(JSON.stringify(err));
+                reject(err);
+            } else {
+                resolve(data.Item.ACCOUNT_ID)
+            }
+        })
+    })
+}
 
-    docClient.update(params, function (err, data) {
-        if (err) {
-            console.log(JSON.stringify(err));
-        } else {
-            console.log(data);
-        }
-    });
+function getIndex(org_id,class_id) {
+    var params = {
+        TableName: "CEDSI_ORG",
+        Key: {
+            ORG_ID: org_id
+        },
+        ProjectionExpression: "ORG_CLASSES"
+    };
+    return new Promise((resolve, reject) => {
+        docClient.get(params, function (err, data) {
+            if (err) {
+                console.log(JSON.stringify(err));
+                reject(err);
+            } else {
+                var index = 0;
+                data.Item.ORG_CLASSES.forEach(element => {
+                    if (element.CLASS_ID == class_id) {
+                        resolve(index);
+                    }
+                    index++;
+                });
+            }
+        });
+    })
+}
+
+function updateCourseMsg(org_id,class_id, course_id, course_name,teacher_id) {
+        getIndex(org_id, class_id).then(index => {
+            var params = {
+                TableName: 'CEDSI_ORG',
+                Key: {
+                    ORG_ID: org_id
+                },
+                UpdateExpression: "SET ORG_CLASSES[:index].COURSE_ID = :cid , ORG_CLASSES[:index].COURSE_NAME = :cname , ORG_CLASSES[:index].CLASS_MEMBER_COUNT = :count, ORG_CLASSES[:index].TEACHER_ID = :teacher",
+                ExpressionAttributeValues: {
+                    ":index": index,
+                    ":cid": course_id,
+                    ":cname": course_name,
+                    ":count": 0,
+                    ":teacher": teacher_id
+                }
+            };
+        
+            docClient.update(params, function (err, data) {
+                if (err) {
+                    console.log(JSON.stringify(err));
+                }
+            });
+    })
 }
 exports.handler = (event, context, callback) => {
     console.log(JSON.stringify(event));
@@ -90,9 +141,14 @@ exports.handler = (event, context, callback) => {
     var course_id = event.course_id;
     var course_name = event.course_name;
     var teacher_id = event.teacher_id;
-    getClassMsg(class_id).then(async class_data => {
-        await updateHistory(class_id, class_data.COURSE_ID, class_data.COURSE_NAME, class_data.CLASS_MEMBER_COUNT, class_data.TEACHER_ID);
-        await updateCourseMsg(class_id, course_id, course_name,teacher_id);
-        callback(null, "ok");
-    });
+    getOrgId(event.principalId).then(org_id => {
+        getClassMsg(org_id, class_id).then(class_data => {
+            updateHistory(org_id,class_id, class_data.COURSE_ID, class_data.COURSE_NAME, class_data.CLASS_MEMBER_COUNT, class_data.TEACHER_ID);
+            updateCourseMsg(org_id,class_id, course_id, course_name, teacher_id);
+            callback(null, {
+                status: "ok"
+            });
+        });
+    })
+    
 };

@@ -20,25 +20,6 @@ function getToken() {
   });
 }
 
-function getAccountCode(id) {
-  var params = {
-      TableName: 'AUTH_USER',
-      Key: {
-          USER_ID: id
-      },
-      ProjectionExpression: "ACCOUNT_ID"
-  };
-  return new Promise((resolve, reject) => {
-      docClient.get(params, function (err, data) {
-          if (err) {
-              console.log(JSON.stringify(err));
-              reject("err1");
-          } else {
-            resolve(data.Item);
-          }
-      });
-  });
-}
 function insertActivity(event, baseURL, onlyId, imgId) {
   var activity = {
     "ACTIVITY_TITLE": event.activityTitle,

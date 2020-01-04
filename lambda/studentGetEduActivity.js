@@ -4,17 +4,16 @@ AWS.config.update({ region: 'cn-northwest-1' });
 let docClient = new AWS.DynamoDB.DocumentClient;
 
 
-function getEduAdminActivity(ORG_CODE) {
+function getEduAdminActivity(org_id) {
   let params = {
-    TableName: 'CEDSI_EDUADMIN_ACTIVITY',
-    IndexName: 'ORG_CODE',
-    KeyConditionExpression: 'ORG_CODE = :A',
-    ExpressionAttributeValues: {
-      ':A': ORG_CODE
-    }
+    TableName: 'CEDSI_ORG',
+    Key: {
+      ORG_ID: org_id
+    },
+    ProjectionExpression: "ACTIVITIES"
   };
   return new Promise((resolve, reject) => {
-    docClient.query(params, function (err, data) {
+    docClient.get(params, function (err, data) {
       err ? reject(err) : resolve(data);
     });
   });
@@ -23,14 +22,13 @@ function getEduAdminActivity(ORG_CODE) {
 function getORGCode(principalId) {
   let params = {
     TableName: 'CEDSI_STUDENT',
-    KeyConditionExpression: 'USER_ID = :id',
-    ExpressionAttributeValues: {
-      ':id': principalId
+    Key: {
+      USER_ID: principalId
     },
     ProjectionExpression: "ORG_ID"
   };
   return new Promise((resolve, reject) => {
-    docClient.query(params, function (err, data) {
+    docClient.get(params, function (err, data) {
       err ? reject(err) : resolve(data);
     });
   });
@@ -42,15 +40,13 @@ exports.handler = (event, context, callback) => {
 
   getORGCode(event.principalId)
     .then(res => {
-      console.log(res);
-      return getEduAdminActivity(res.Items[0].ORG_ID);
+      return getEduAdminActivity(res.Item.ORG_ID);
     })
     .then(res => {
-      console.log(res.Items);
-      callback(null, res.Items);
+      callback(null, res.Item.ACTIVITIES);
     })
     .catch(err => {
-      console.log(JSON.stringify(err));
+      console.error(JSON.stringify(err));
       callback(err, null);
     });
 };

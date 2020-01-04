@@ -14,29 +14,6 @@ function randomStr(len) {
     return crypto.randomBytes(Math.ceil(len / 2)).toString('hex').slice(0, len);
 }
 
-function createUserInfo(id,role_id,name) {
-    var params = {
-        Item: {
-            "AVATAR": "https://cedsi.s3.cn-northwest-1.amazonaws.com.cn/default_avatar.png",
-            "CREATE_TIME": Date.now(),
-            "NICK_NAME": name,
-            "ROLE_ID": role_id,
-            "USER_ID": id
-        },
-        TableName: "USER_INFO"
-    };
-    return new Promise((resolve, reject) => {
-        docClient.put(params, function(err, data) {
-            if (err) {
-                console.error(JSON.stringify(err));
-                reject(err);
-            } else {
-                console.log(data);
-                resolve(data);
-            }
-        });
-    });
-}
 exports.handler = (event, context, callback) => {
     console.log(JSON.stringify(event));
     var response = {};
@@ -64,22 +41,22 @@ exports.handler = (event, context, callback) => {
             "CREATE_TIME": String(Date.now()),
             "ROLE_ID": ROLE_ID,
             "SALT": salt,
-            "USER_STATUS": "active"
-            // "USER_INFO": {
-            //     "AVATAR": "https://cedsi.s3.cn-northwest-1.amazonaws.com.cn/default_avatar.png",
-            //     "NICK_NAME": username,
-            //     "EAMIL": "example@qq.com",
-            //     "GENDER": "1",
-            //     "PHONE": "12345678900",
-            //     "UPDATE_TIME": String(Date.now())
-            // }
+            "USER_STATUS": "active",
+            "USER_INFO": {
+                "AVATAR": "https://cedsi.s3.cn-northwest-1.amazonaws.com.cn/default_avatar.png",
+                "NICK_NAME": username,
+                "EAMIL": "example@qq.com",
+                "GENDER": "1",
+                "PHONE": "12345678900",
+                "UPDATE_TIME": String(Date.now())
+            }
         }
     };
-    createUserInfo(userID,ROLE_ID,username);
     docClient.put(params,function(err,data){
         if(err){
-            console.log(err);
+            console.error(err);
             response.status = "fail";
+            response.err = err;
             callback(response,null);
         }else{
             response.status = "ok";

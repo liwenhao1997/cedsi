@@ -25,13 +25,13 @@ function getAccountCode(id) {
     });
 }
 
-function getTeacher(code) {
+function getTeacher(org_id) {
     var params = {
         TableName: 'CEDSI_TEACHER',
-        IndexName: 'ORG_CODE',
-        KeyConditionExpression: 'ORG_CODE = :code',
+        IndexName: 'ORG_ID',
+        KeyConditionExpression: 'ORG_ID = :id',
         ExpressionAttributeValues: {
-            ':code': code
+            ':id': org_id
         },
         ProjectionExpression: "TEACHER_ID,JOB_NUMBER,TEACHER_NAME,GENDER,INTRO,TEACHER_STATUS"
     };
@@ -41,13 +41,10 @@ function getTeacher(code) {
                 console.error(JSON.stringify(err));
                 reject(err);
             } else {
-                // var i = 0;
                 var response = [];
                 var length = data.Items.length;
                 response = data.Items.forEach(item => {
                     if (item.TEACHER_STATUS == "disable") {
-                        // data.Items.splice(i,1);
-                        // i--;
                         length--;
                     } else{
                         response.push(item);
@@ -64,9 +61,7 @@ exports.handler = (event, context, callback) => {
     console.log(JSON.stringify(event));
     var id = event.principalId;
     getAccountCode(id).then(data => {
-        console.log(data)
         getTeacher(data.ACCOUNT_ID).then(data => {
-            console.log(data);
             callback(null, data);
         }).catch(err => {
             console.error(JSON.stringify(err));

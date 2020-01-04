@@ -17,26 +17,24 @@ function getAccountCode(id) {
     return new Promise((resolve, reject) => {
         docClient.get(params, function (err, data) {
             if (err) {
-                console.log(JSON.stringify(err));
+                console.error(JSON.stringify(err));
                 reject("err1");
             } else {
                 var result = {};
-                var code = data.Item.ACCOUNT_ID;
-                var p = {
+                var org_id = data.Item.ACCOUNT_ID;
+                var params = {
                     TableName: 'CEDSI_ORG',
-                    IndexName: "ORG_CODE",
-                    KeyConditionExpression: 'ORG_CODE = :id',
-                    ExpressionAttributeValues: {
-                        ':id': code
+                    Key: {
+                        ORG_ID: org_id
                     },
                     ProjectionExpression: "ORG_NUMBER"
                 };
-                docClient.query(p, function (err, data) {
+                docClient.get(params, function (err, data) {
                     if (err) {
                         reject(err);
                     } else {
-                        result.code = code;
-                        result.number = data.Items[0].ORG_NUMBER;
+                        result.org_id = org_id;
+                        result.number = data.Item.ORG_NUMBER;
                         resolve(result);
                     }
                 });
@@ -66,11 +64,10 @@ exports.handler = (event, context, callback) => {
             TableName: 'CEDSI_STUDENT',
             IndexName: 'ORG_ID',
             KeyConditionExpression: 'ORG_ID = :id',
-            FilterExpression: "CLASS_ID = :cid",
             ExpressionAttributeValues: {
-                ':id': data.code,
-                ":cid": data.number
-            }
+                ':id': data.org_id
+            },
+            ProjectionExpression: "STUDENT_INFO,USER_ID"
         };
         docClient.query(params, function(err, data) {
             if (err) {
@@ -78,7 +75,7 @@ exports.handler = (event, context, callback) => {
                 callback(err, null);
             } else {
                 response.status = "ok";
-                response.data = data.Items.sort(keysort("STUDENT_ID", false));
+                response.data = data.Items.sort(keysort("STUDENT_INFO.STUDENT_ID", false));
                 response.count = data.Count;
                 callback(null, response);
             }

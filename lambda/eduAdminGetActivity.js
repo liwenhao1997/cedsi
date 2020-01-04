@@ -4,23 +4,21 @@ AWS.config.update({ region: 'cn-northwest-1' });
 let docClient = new AWS.DynamoDB.DocumentClient;
 
 
-function getEduAdminActivity(ORG_CODE) {
+function getEduAdminActivity(org_id) {
   let params = {
-    TableName: 'CEDSI_EDUADMIN_ACTIVITY',
-    IndexName: 'ORG_CODE',
-    KeyConditionExpression: 'ORG_CODE = :A',
-    ExpressionAttributeValues: {
-      ':A': ORG_CODE
+    TableName: 'CEDSI_ORG',
+    Key: {
+      ORG_ID: org_id
     }
   };
   return new Promise((resolve, reject) => {
-    docClient.query(params, function (err, data) {
+    docClient.get(params, function (err, data) {
       err ? reject(err) : resolve(data);
     });
   });
 }
 
-function getORGCode(principalId) {
+function getOrgId(principalId) {
   let params = {
     TableName: 'AUTH_USER',
     Key: { USER_ID: principalId },
@@ -36,24 +34,15 @@ function getORGCode(principalId) {
 exports.handler = (event, context, callback) => {
 
   console.log(JSON.stringify(event));
-  let response = {};
-  // if (event.role !== "3") {
-  //   response.status = "fail";
-  //   response.err = "非法访问";
-  //   callback(response, null);
-  //   return;
-  // }
 
-  getORGCode(event.principalId)
+  getOrgId(event.principalId)
     .then(res => {
-      console.log(res.Item.ACCOUNT_ID);
       return getEduAdminActivity(res.Item.ACCOUNT_ID);
     })
     .then(res => {
-      console.log(res.Items);
-      callback(null, res.Items);
+      callback(null, res.Item.ACTIVITIES);
     })
     .catch(err => {
-      console.log(JSON.stringify(err));
+      console.error(JSON.stringify(err));
     });
 };

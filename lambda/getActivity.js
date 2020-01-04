@@ -19,17 +19,18 @@ function scanAvtivityPromise() {
 
 function getUserInfoPromise(userId) {
     var params = {
-        TableName: 'USER_INFO',
+        TableName: 'AUTH_USER',
         Key: { USER_ID: userId },
-        ProjectionExpression: "NICK_NAME"
+        ProjectionExpression: "USER_INFO.NICK_NAME"
     };
     return new Promise((resolve, reject) => {
         docClient.get(params, function (err, data) {
             if (err) {
-                console.log(err);
-                reject("Couldn\'t fetch the USER_INFO items");
+                reject(err);
+            } else {
+                resolve(data);
             }
-            resolve(data);
+            
         });
     });
 }
@@ -62,7 +63,13 @@ exports.handler = (event, context, callback) => {
         callback(response, null);
     }
     scanAvtivityPromise()
-        .then(res => { console.log(res); return addAttributes(res); })
-        .then(result => { console.log(result); callback(null, result); })
-        .catch(err => { console.log(err); });
+        .then(res => {
+            return addAttributes(res);
+        })
+        .then(result => {
+            callback(null, result);
+        })
+        .catch(err => {
+            console.error(err);
+        });
 };

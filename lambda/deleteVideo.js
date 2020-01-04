@@ -6,87 +6,61 @@ AWS.config.update({
 
 var docClient = new AWS.DynamoDB.DocumentClient;
 
-function updateResource(id) {
+
+function getUrl(course_id, chapter_id, rs_id) {
     var params = {
-        TableName: 'CEDSI_CHAPTERS',
+        TableName: 'CEDSI_CURRICULUMS',
         Key: {
-            CP_ID: id
+            ID: course_id
         },
-        UpdateExpression: "SET CP_RESOURCE.VIDEO = :empty",
+        ProjectionExpression: "CHAPTERS"
+    };
+    return new Promise((resolve, reject) => {
+        var rs_ids = 0;
+        docClient.get(params, function (err, data) {
+            if (err) {
+                console.error(JSON.stringify(err));
+                reject(err);
+            } else {
+                var result = {};
+                data.Item.CHAPTERS.forEach(element => {
+                    if (element.CP_ID == chapter_id) {
+                        CP_RESOURCE.forEach(item => {
+                            if (item.RS_ID == rs_id) {
+                                var arr = item.RS_URL.split(".cn/");
+                                result.rs = arr[arr.length - 1];
+                                result.cp_ids = cp_ids;
+                                result.rs_ids = rs_ids;
+                                resolve(result);
+                            }
+                            rs_ids++;
+                        })
+                    }
+                });
+            }
+        });
+    });
+}
+
+
+function deleteRS(course_id,cp_id,rs_ids) {
+    var params = {
+        TableName: 'CEDSI_CURRICULUMS',
+        Key: {
+            ID: course_id
+        },
+        UpdateExpression: "REMOVE CHAPTERS[:cp_ids].CP_RESOURCE[:rs_ids]",
         ExpressionAttributeValues: {
-            ":empty": {}
+            ":cp_ids": cp_id,
+            ":rs_ids": rs_ids
         }
     };
-
     return new Promise((resolve, reject) => {
         docClient.update(params, function (err, data) {
             if (err) {
-                console.log(JSON.stringify(err));
+                console.error(JSON.stringify(err));
                 reject(err);
             } else {
-                console.log(data);
-                resolve(data);
-            }
-        });
-    });
-}
-
-// function getResource(id) {
-//     var params = {
-//         TableName: 'CEDSI_CHAPTERS',
-//         Key: {
-//             CP_ID: id
-//         }
-//     };
-//     return new Promise((resolve, reject) => {
-//         docClient.get(params, function (err, data) {
-//             if (err) {
-//                 console.log(JSON.stringify(err));
-//                 reject(err);
-//             } else {
-//                 console.log(data);
-//                 resolve(data.Item);
-//             }
-//         });
-//     });
-// }
-
-function getUrl(id) {
-    var params = {
-        TableName: 'CEDSI_RESOURCE',
-        Key: {
-            RS_ID: id
-        },
-        ProjectionExpression: "RS_URL"
-    };
-    return new Promise((resolve, reject) => {
-        docClient.get(params, function (err, data) {
-            if (err) {
-                console.log(JSON.stringify(err));
-                reject(err);
-            } else {
-                console.log(data);
-                var arr = data.Item.RS_URL.split(".cn/");
-                resolve(arr[arr.length - 1]);
-            }
-        });
-    });
-}
-
-function deleteRS(id) {
-    var params = {
-        TableName: 'CEDSI_RESOURCE',
-        Key: {
-            RS_ID: id
-        }
-    };
-    return new Promise((resolve, reject) => {
-        docClient.delete(params, function (err, data) {
-            if (err) {
-                console.log(JSON.stringify(err));
-                reject(err);
-            } else {
-                console.log(data);
                 resolve(data);
             }
         });
@@ -106,7 +80,6 @@ function deleteVideo(key) {
                 reject(err);
             } 
             else {
-                console.log(data); 
                 resolve(data);
             }
         });
@@ -122,12 +95,12 @@ exports.handler = (event, context, callback) => {
         callback(response, null);
         return;
     }
+    var course_id = event.course_id;
     var cp_id = event.cp_id;
     var rs_id = event.rs_id;
-    updateResource(cp_id);
-    getUrl(rs_id).then(data => {
-        deleteRS(rs_id);
-        deleteVideo(data);
+    getUrl(course_id, cp_id, rs_id).then(data => {
+        deleteRS(course_id, cp_id, rs_id);
+        deleteVideo(data.rs);
         callback(null, {status: "ok"});
     }).catch(err => {
         callback(err, null);

@@ -11,16 +11,15 @@ let docClient = new AWS.DynamoDB.DocumentClient();
  */
 function getChapterNum(courseID) {
   let params = {
-    TableName: "CEDSI_CHAPTERS",
-    IndexName: "COURSE_ID",
-    KeyConditionExpression: 'COURSE_ID = :id',
-    ExpressionAttributeValues: {
-      ':id': courseID
-    }
+    TableName: "CEDSI_CURRICULUMS",
+    Key: {
+      ID: courseID
+    },
+    ProjectionExpression: "CHAPTERS"
   };
   return new Promise((resolve, reject) => {
-    docClient.query(params, (err, data) => {
-      err ? reject(err) : resolve(data);
+    docClient.get(params, (err, data) => {
+      err ? reject(err) : resolve(data.Item.CHAPTERS);
     });
   });
 }
@@ -31,43 +30,71 @@ function getChapterNum(courseID) {
  * @param {String} teacherID
  * @returns
  */
-function getClassesWithTeacherID(teacherID) {
+function getClassesWithTeacherID(orgId, teacherID) {
   let params = {
-    TableName: 'CEDSI_CLASS',
-    IndexName: "TEACHER_ID",
-    KeyConditionExpression: 'TEACHER_ID = :id',
-    ExpressionAttributeValues: {
-      ':id': teacherID
+    TableName: 'CEDSI_ORG',
+    Key: {
+      ORG_ID: orgId
     },
-    ProjectionExpression: "CLASS_ID,CLASS_NAME,COURSE_ID,COURSE_NAME,CLASS_MEMBER_COUNT"
+    ProjectionExpression: "ORG_CLASSES"
   };
   return new Promise((resolve, reject) => {
-    docClient.query(params, (err, data) => {
-      err ? reject(err) : resolve(data);
+    docClient.get(params, (err, data) => {
+      if (err) {
+        reject(err);
+      } else {
+        var result = [];
+        var index = 0;
+        data.Item.ORG_CLASSES.forEach(item => {
+          if (item.TEACHER_ID == teacherID) {
+            result.push(item);
+          }
+          if (++index == data.Item.ORG_CLASSES.length) {
+            resolve(result);
+          }
+        })
+      }
     });
   });
 }
-
+function getAccountCode(id) {
+  var params = {
+    TableName: 'AUTH_USER',
+    Key: {
+      USER_ID: id
+    },
+    ProjectionExpression: "ACCOUNT_ID"
+  };
+  return new Promise((resolve, reject) => {
+    docClient.get(params, function (err, data) {
+      if (err) {
+        reject(err);
+      } else {
+        resolve(data.Item);
+      }
+    });
+  });
+}
 exports.handler = (event, context, callback) => {
   let id = event.principalId;
   let classes = [];
-  getClassesWithTeacherID(id)
-    .then(res => {
-      classes = res.Items;
-      let promises = classes.map(item => getChapterNum(item.COURSE_ID));
-      return Promise.all(promises);
-    })
-    .then(res => {
-      classes = classes.map((item, index) => {
-        item.CHAPTER_NUM = res[index].Count;
-        return item;
+  getAccountCode(id).then(org_id => {
+    getClassesWithTeacherID(org_id, id)
+      .then(res => {
+        classes = res.Items;
+        let promises = classes.map(item => getChapterNum(item.COURSE_ID));
+        return Promise.all(promises);
+      })
+      .then(res => {
+        classes = classes.map((item, index) => {
+          item.CHAPTER_NUM = res[index].length;
+          return item;
+        });
+        callback(null, classes);
+      })
+      .catch(err => {
+        console.error(JSON.stringify(err));
+        callback(err, null);
       });
-      console.log(JSON.stringify(classes));
-      callback(null, classes);
-    })
-    .catch(err => {
-      console.log("ERROR!");
-      console.log(JSON.stringify(err));
-      callback(err, null);
-    });
+  })
 };
